@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f0f0f0; display: flex; gap: 10px; padding: 20px; }
+        .card { background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; text-align: center; }
+        button { background: #0088cc; color: white; border: none; padding: 10px; border-radius: 5px; width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h3>Карточка 1</h3>
+        <p>Обычная</p>
+    </div>
+    <div class="card">
+        <h3>Карточка 2</h3>
+        <p>Редкая</p>
+    </div>
+    <script>
+        // Инициализация Telegram Mini App
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Развернуть на весь экран
+    </script>
+</body>
+</html>
