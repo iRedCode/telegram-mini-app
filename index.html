@@ -5,112 +5,129 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Базовые настройки */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #12121c; color: white; margin: 0; padding: 0; padding-bottom: 70px; }
+        /* Современная темная тема */
+        :root { --bg: #09090b; --surface: rgba(24, 24, 27, 0.7); --text: #fafafa; --accent: #ef4444; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0 15px 90px 15px; }
         * { box-sizing: border-box; }
 
-        /* Вкладки */
-        .tab-content { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
+        /* Вкладки и Анимации */
+        .tab-content { display: none; animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); padding-top: 20px;}
         .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Дизайн Карточки */
-        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        /* Профиль (Глассморфизм) */
+        .profile-card { background: var(--surface); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 25px; border-radius: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 8px 32px rgba(0,0,0,0.3); margin-bottom: 20px; }
+        .coins-badge { display: inline-block; background: rgba(234, 179, 8, 0.2); color: #eab308; padding: 8px 16px; border-radius: 30px; font-weight: 800; font-size: 18px; margin-top: 10px; border: 1px solid rgba(234, 179, 8, 0.3); }
+
+        /* Сетка карт (Умный размер) */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
         
+        /* Дизайн карточки */
         .card-visual {
-            position: relative; width: 100%; aspect-ratio: 2/3; /* Пропорции карточки */
-            border-radius: 12px; background-size: cover; background-position: center;
-            overflow: hidden; border: 3px solid; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative; aspect-ratio: 2/3; border-radius: 12px; background-size: cover; background-position: center;
+            overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.2s;
         }
+        .card-visual:active { transform: scale(0.95); }
         
-        /* Плашка ранга (в левом верхнем углу) */
-        .rank-badge {
-            position: absolute; top: 0; left: 0; padding: 5px 12px; font-weight: 900; font-size: 18px;
-            background: rgba(0, 0, 0, 0.7); border-bottom-right-radius: 10px; z-index: 2;
+        /* Градиент затемнения снизу */
+        .card-visual::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 50%); z-index: 1; }
+
+        /* Текст на карте */
+        .card-info { position: absolute; bottom: 8px; left: 8px; right: 8px; z-index: 2; text-align: left; }
+        .card-name { font-weight: 800; font-size: 12px; margin: 0; line-height: 1.1; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .card-anime { font-size: 9px; opacity: 0.7; margin: 2px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Плашка ранга */
+        .rank-badge { position: absolute; top: 6px; left: 6px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; border-radius: 6px; z-index: 2; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
+
+        /* Цвета рангов и свечение */
+        .rank-S { border: 2px solid #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); } .badge-S { color: #ef4444; }
+        .rank-A { border: 2px solid #eab308; box-shadow: 0 0 10px rgba(234, 179, 8, 0.5); }  .badge-A { color: #eab308; }
+        .rank-P { border: 2px solid #a855f7; box-shadow: 0 0 10px rgba(168, 85, 247, 0.5); } .badge-P { color: #a855f7; }
+        .rank-D { border: 2px solid #3b82f6; } .badge-D { color: #3b82f6; }
+        .rank-E { border: 2px solid #71717a; } .badge-E { color: #71717a; }
+
+        /* Голографический перелив для S и P рангов */
+        .holo-effect::after {
+            content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+            background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.4) 25%, transparent 30%);
+            background-size: 200% 200%; animation: holoShine 3s infinite linear; mix-blend-mode: overlay;
         }
+        @keyframes holoShine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-        /* Текст внизу карты */
-        .card-info {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            background: linear-gradient(transparent, rgba(0,0,0,0.9) 60%, black);
-            padding: 20px 10px 10px 10px; text-align: center; z-index: 2;
+        /* Кнопка магазина */
+        .btn-pack {
+            background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; border: none; padding: 20px; font-size: 18px;
+            border-radius: 16px; cursor: pointer; width: 100%; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4); transition: 0.2s; position: relative; overflow: hidden;
         }
-        .card-name { font-weight: bold; font-size: 15px; margin: 0; text-shadow: 1px 1px 2px black; }
-        .card-anime { font-size: 11px; opacity: 0.8; margin: 3px 0 0 0; }
+        .btn-pack:active { transform: scale(0.96); box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4); }
 
-        /* Цвета рамок в зависимости от ранга */
-        .rank-S { border-color: #ff4757; color: #ff4757; } /* Красный */
-        .rank-A { border-color: #ffa502; color: #ffa502; } /* Золотой */
-        .rank-P { border-color: #9b59b6; color: #9b59b6; } /* Фиолетовый */
-        .rank-D { border-color: #3742fa; color: #3742fa; } /* Синий */
-        .rank-E { border-color: #747d8c; color: #747d8c; } /* Серый */
+        /* Всплывающее окно (Модалка выпадения карты) */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 200; justify-content: center; align-items: center; flex-direction: column; }
+        .modal-card-wrap { width: 60%; max-width: 250px; animation: popCard 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popCard { 0% { transform: scale(0.5) translateY(100px) rotate(-10deg); opacity: 0; } 100% { transform: scale(1) translateY(0) rotate(0); opacity: 1; } }
+        .modal-btn { margin-top: 30px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 12px 30px; border-radius: 20px; font-weight: bold; font-size: 16px; animation: fadeUp 0.8s; }
 
-        /* Элементы UI */
-        .profile-card { background: #1e1e2d; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px; border: 1px solid #2a2a40; }
-        .btn-pack { background: linear-gradient(135deg, #ff4757, #ff6b81); color: white; border: none; padding: 18px; font-size: 18px; border-radius: 12px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4); }
-        .btn-pack:active { transform: scale(0.97); }
-
-        /* Нижнее меню (Bottom Navigation) */
-        .bottom-nav {
-            position: fixed; bottom: 0; left: 0; width: 100%; background: #1e1e2d; display: flex;
-            justify-content: space-around; padding: 12px 0; border-top: 1px solid #2a2a40; z-index: 100;
-        }
-        .nav-item { color: #747d8c; background: none; border: none; font-size: 12px; font-weight: bold; display: flex; flex-direction: column; align-items: center; gap: 5px; opacity: 0.7; transition: 0.2s; }
-        .nav-item.active { color: #ff4757; opacity: 1; }
-        .nav-icon { font-size: 20px; }
+        /* Нижнее меню (Glassmorphism) */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(24, 24, 27, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); display: flex; justify-content: space-around; padding: 15px 0 calc(15px + env(safe-area-inset-bottom)); border-top: 1px solid rgba(255,255,255,0.05); z-index: 100; }
+        .nav-item { color: #a1a1aa; background: none; border: none; font-size: 11px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: 0.3s; width: 25%; }
+        .nav-item.active { color: #ef4444; transform: translateY(-3px); }
+        .nav-icon { font-size: 22px; margin-bottom: 2px;}
     </style>
 </head>
 <body>
 
     <div id="tab-profile" class="tab-content active">
-        <h2 style="margin-top:0;">Мой профиль</h2>
+        <h2 style="margin: 0 0 15px 0; font-size: 24px; font-weight: 800;">Профиль</h2>
         <div class="profile-card">
-            <h1 style="font-size: 40px; margin: 10px 0;">👤</h1>
-            <h2 id="greeting">Загрузка...</h2>
-            <p style="color: #ffa502; font-size: 18px; font-weight: bold;">Баланс: <span id="coins">...</span> 🪙</p>
+            <h1 style="font-size: 50px; margin: 0 0 10px 0;">🥷</h1>
+            <h2 id="greeting" style="margin: 0; font-size: 22px;">Загрузка...</h2>
+            <div class="coins-badge"><span id="coins">...</span> 🪙</div>
         </div>
     </div>
 
     <div id="tab-shop" class="tab-content">
-        <h2>Магазин</h2>
+        <h2 style="margin: 0 0 15px 0; font-size: 24px; font-weight: 800;">Магазин</h2>
         <button class="btn-pack" id="openPackBtn" onclick="openPack()">Открыть пак (50 🪙)</button>
-        <div id="newCardContainer" style="display: none; text-align: center;">
-            <h3 style="color: #ff4757;">✨ Новая карта! ✨</h3>
-            <div id="newCardRender" style="width: 70%; margin: 0 auto;"></div>
-        </div>
     </div>
 
     <div id="tab-inventory" class="tab-content">
-        <h2>Моя коллекция</h2>
+        <h2 style="margin: 0 0 15px 0; font-size: 24px; font-weight: 800;">Моя коллекция</h2>
         <div class="cards-grid" id="inventoryList"></div>
     </div>
 
     <div id="tab-allcards" class="tab-content">
-        <h2>Справочник карт</h2>
-        <p style="font-size: 12px; color: #747d8c;">Все карточки, которые существуют в игре:</p>
+        <h2 style="margin: 0 0 5px 0; font-size: 24px; font-weight: 800;">Справочник</h2>
+        <p style="color: #a1a1aa; font-size: 12px; margin-bottom: 20px;">Все карты в игре</p>
         <div class="cards-grid" id="allCardsList"></div>
+    </div>
+
+    <div class="modal-overlay" id="cardModal" onclick="closeModal()">
+        <h2 style="color: white; margin-bottom: 30px; font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">Высшая редкость!</h2>
+        <div class="modal-card-wrap" id="modalCardRender"></div>
+        <button class="modal-btn">Забрать</button>
     </div>
 
     <div class="bottom-nav">
         <button class="nav-item active" onclick="switchTab('profile', this)"><span class="nav-icon">👤</span>Профиль</button>
-        <button class="nav-item" onclick="switchTab('shop', this)"><span class="nav-icon">🛍️</span>Магазин</button>
+        <button class="nav-item" onclick="switchTab('shop', this)"><span class="nav-icon">✨</span>Магазин</button>
         <button class="nav-item" onclick="switchTab('inventory', this)"><span class="nav-icon">🎒</span>Коллекция</button>
-        <button class="nav-item" onclick="switchTab('allcards', this)"><span class="nav-icon">📖</span>Все карты</button>
+        <button class="nav-item" onclick="switchTab('allcards', this)"><span class="nav-icon">📖</span>Каталог</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.setHeaderColor('#1e1e2d'); // Красим шапку телеграма в цвет приложения
+        tg.setHeaderColor('#09090b');
+        tg.setBackgroundColor('#09090b');
 
-        // !!! ВАЖНО: ВСТАВЬ СЮДА ССЫЛКУ НА СВОЙ RENDER !!!
+        // !!! ВАЖНО: ТВОЯ ССЫЛКА НА RENDER !!!
         const SERVER_URL = "https://manga-cards-backend.onrender.com"; 
         
         const userId = tg.initDataUnsafe?.user?.id || '123';
         const userName = tg.initDataUnsafe?.user?.first_name || 'Гость';
 
-        // Переключение вкладок
         function switchTab(tabName, btnElement) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -118,11 +135,12 @@
             btnElement.classList.add('active');
         }
 
-        // Генератор HTML для карточки (чтобы не писать один и тот же код 10 раз)
         function createCardHTML(card) {
+            // Добавляем класс holo-effect, если карта ранга S или P
+            const isHolo = (card.rank === 'S' || card.rank === 'P') ? 'holo-effect' : '';
             return `
-                <div class="card-visual rank-${card.rank}" style="background-image: url('${card.image}')">
-                    <div class="rank-badge rank-${card.rank}">${card.rank}</div>
+                <div class="card-visual rank-${card.rank} ${isHolo}" style="background-image: url('${card.image}')">
+                    <div class="rank-badge badge-${card.rank}">${card.rank}</div>
                     <div class="card-info">
                         <p class="card-name">${card.name}</p>
                         <p class="card-anime">${card.anime}</p>
@@ -131,31 +149,27 @@
             `;
         }
 
-        // Отрисовка списков
         function renderGrid(containerId, items, emptyMessage) {
             const list = document.getElementById(containerId);
-            list.innerHTML = '';
             if (items.length === 0) {
-                list.innerHTML = `<p style="grid-column: span 2; text-align: center; color: #747d8c;">${emptyMessage}</p>`;
+                list.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #71717a; padding: 20px;">${emptyMessage}</p>`;
                 return;
             }
-            items.forEach(card => {
-                list.innerHTML += createCardHTML(card);
-            });
+            list.innerHTML = items.map(card => createCardHTML(card)).join('');
         }
 
-        // Загрузка всех существующих карт (Справочник)
+        function closeModal() {
+            document.getElementById('cardModal').style.display = 'none';
+        }
+
         async function loadAllCards() {
             try {
                 const response = await fetch(`${SERVER_URL}/api/cards`);
                 const allCards = await response.json();
-                renderGrid('allCardsList', allCards, 'Карты загружаются...');
-            } catch (e) {
-                console.error("Ошибка загрузки справочника");
-            }
+                renderGrid('allCardsList', allCards, 'Загрузка...');
+            } catch (e) { console.error("Ошибка"); }
         }
 
-        // Логин: получаем профиль и инвентарь
         async function login() {
             document.getElementById('greeting').innerText = userName;
             try {
@@ -166,18 +180,14 @@
                 });
                 const data = await response.json();
                 document.getElementById('coins').innerText = data.coins;
-                renderGrid('inventoryList', data.inventory, 'У вас пока нет карточек. Откройте пак в магазине!');
-            } catch (e) {
-                alert("Ошибка подключения к серверу!");
-            }
+                renderGrid('inventoryList', data.inventory, 'Пусто. Открой свой первый пак!');
+            } catch (e) { alert("Ошибка сервера!"); }
         }
 
-        // Покупка пака
         async function openPack() {
             const btn = document.getElementById('openPackBtn');
             btn.disabled = true; btn.innerText = "Открываем...";
-            document.getElementById('newCardContainer').style.display = 'none';
-
+            
             try {
                 const response = await fetch(`${SERVER_URL}/api/open_pack`, {
                     method: 'POST',
@@ -191,19 +201,17 @@
                 } else {
                     document.getElementById('coins').innerText = data.coins;
                     
-                    // Рисуем выпавшую карту
-                    document.getElementById('newCardRender').innerHTML = createCardHTML(data.newCard);
-                    document.getElementById('newCardContainer').style.display = 'block';
+                    // Показываем красивую модалку с картой
+                    document.getElementById('modalCardRender').innerHTML = createCardHTML(data.newCard);
+                    document.getElementById('cardModal').style.display = 'flex';
 
-                    login(); // Обновляем инвентарь
+                    login(); // Обновляем инвентарь в фоне
                 }
-            } catch (e) {
-                alert("Ошибка при открытии пака!");
-            }
+            } catch (e) { alert("Ошибка!"); }
+            
             btn.disabled = false; btn.innerText = "Открыть пак (50 🪙)";
         }
 
-        // Запускаем при старте
         login();
         loadAllCards();
     </script>
