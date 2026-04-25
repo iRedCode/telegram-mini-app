@@ -5,12 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background: #1e1e2f; color: white; padding: 20px; text-align: center; }
-        .profile { background: #2a2a40; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        body { font-family: sans-serif; background: #1e1e2f; color: white; padding: 15px; margin: 0; text-align: center; }
+        .profile { background: #2a2a40; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+        
+        /* Стили для вкладок */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 10px; background: #3742fa; color: white; border: none; border-radius: 8px; font-weight: bold; opacity: 0.5; transition: 0.2s; }
+        .tab-btn.active { opacity: 1; background: #ff4757; }
+        
+        /* Скрываем неактивные вкладки */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         .btn-pack { background: #ff4757; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;}
-        .btn-pack:active { background: #ff6b81; transform: scale(0.98); }
-        .result-card { margin-top: 20px; background: #3742fa; padding: 20px; border-radius: 10px; display: none; animation: pop 0.3s ease-out; }
-        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .btn-pack:active { transform: scale(0.98); }
+        .result-card { margin-top: 20px; background: #3742fa; padding: 20px; border-radius: 10px; display: none; }
+        
+        /* Стили для сетки инвентаря */
+        .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .inv-card { background: #2a2a40; padding: 10px; border-radius: 8px; border: 1px solid #555; }
+        .inv-card h1 { margin: 5px 0; font-size: 30px; }
+        .inv-card p { margin: 5px 0; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -19,30 +34,70 @@
         <p>Баланс: <span id="coins">...</span> 🪙</p>
     </div>
 
-    <button class="btn-pack" id="openPackBtn" onclick="openPack()">Открыть пак (50 🪙)</button>
+    <div class="tabs">
+        <button class="tab-btn active" id="btn-shop" onclick="switchTab('shop')">Магазин</button>
+        <button class="tab-btn" id="btn-inv" onclick="switchTab('inventory')">Моя коллекция</button>
+    </div>
 
-    <div class="result-card" id="cardResult">
-        <h3>Вам выпала карточка!</h3>
-        <h1 id="cardEmoji">✨</h1>
-        <h2 id="cardName">Название</h2>
-        <p id="cardRarity">Редкость</p>
+    <div id="tab-shop" class="tab-content active">
+        <button class="btn-pack" id="openPackBtn" onclick="openPack()">Открыть пак (50 🪙)</button>
+        <div class="result-card" id="cardResult">
+            <h3>Вам выпала карточка!</h3>
+            <h1 id="cardEmoji">✨</h1>
+            <h2 id="cardName">Название</h2>
+            <p id="cardRarity">Редкость</p>
+        </div>
+    </div>
+
+    <div id="tab-inventory" class="tab-content">
+        <h3>Ваши карты:</h3>
+        <div class="inventory-grid" id="inventoryList">
+            </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ВАЖНО: Вставь сюда ссылку на свой сервер с Render.com (без слеша на конце)
+        // ВАЖНО: Вставь свою ссылку на Render!
         const SERVER_URL = "https://manga-cards-backend.onrender.com"; 
         
-        // Получаем ID пользователя (если открыли в браузере, ставим заглушку '123')
         const userId = tg.initDataUnsafe?.user?.id || '123';
         const userName = tg.initDataUnsafe?.user?.first_name || 'Гость';
 
-        // 1. При загрузке страницы логинимся на сервере
+        // Переключение вкладок
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            document.getElementById(tabName === 'shop' ? 'btn-shop' : 'btn-inv').classList.add('active');
+        }
+
+        // Отрисовка инвентаря
+        function renderInventory(items) {
+            const list = document.getElementById('inventoryList');
+            list.innerHTML = ''; // Очищаем список
+            
+            if (items.length === 0) {
+                list.innerHTML = '<p style="grid-column: span 2;">У вас пока нет карточек. Откройте первый пак!</p>';
+                return;
+            }
+
+            items.forEach(card => {
+                list.innerHTML += `
+                    <div class="inv-card">
+                        <h1>${card.emoji}</h1>
+                        <p><strong>${card.name}</strong></p>
+                        <p>${card.rarity}</p>
+                    </div>
+                `;
+            });
+        }
+
+        // Логин: теперь получаем и инвентарь тоже
         async function login() {
             document.getElementById('greeting').innerText = `Привет, ${userName}!`;
-            
             try {
                 const response = await fetch(`${SERVER_URL}/api/login`, {
                     method: 'POST',
@@ -51,16 +106,16 @@
                 });
                 const data = await response.json();
                 document.getElementById('coins').innerText = data.coins;
+                renderInventory(data.inventory); // Рисуем карточки
             } catch (e) {
                 alert("Ошибка подключения к серверу!");
             }
         }
 
-        // 2. Функция покупки пака
+        // Покупка пака
         async function openPack() {
             const btn = document.getElementById('openPackBtn');
-            btn.disabled = true;
-            btn.innerText = "Открываем...";
+            btn.disabled = true; btn.innerText = "Открываем...";
 
             try {
                 const response = await fetch(`${SERVER_URL}/api/open_pack`, {
@@ -68,32 +123,27 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ telegram_id: userId })
                 });
-                
                 const data = await response.json();
 
                 if (data.error) {
-                    alert(data.error); // Например "Недостаточно монет"
+                    alert(data.error);
                 } else {
-                    // Обновляем монеты
                     document.getElementById('coins').innerText = data.coins;
                     
-                    // Показываем выпавшую карту
-                    const resultDiv = document.getElementById('cardResult');
                     document.getElementById('cardEmoji').innerText = data.newCard.emoji;
                     document.getElementById('cardName').innerText = data.newCard.name;
                     document.getElementById('cardRarity').innerText = data.newCard.rarity;
-                    
-                    resultDiv.style.display = 'block';
+                    document.getElementById('cardResult').style.display = 'block';
+
+                    // Обновляем список карт в фоне, заново запрашивая данные
+                    login(); 
                 }
             } catch (e) {
                 alert("Ошибка при открытии пака!");
             }
-
-            btn.disabled = false;
-            btn.innerText = "Открыть пак (50 🪙)";
+            btn.disabled = false; btn.innerText = "Открыть пак (50 🪙)";
         }
 
-        // Запускаем логин при старте
         login();
     </script>
 </body>
