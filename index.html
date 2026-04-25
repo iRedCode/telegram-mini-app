@@ -1,26 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f0f0; display: flex; gap: 10px; padding: 20px; }
-        .card { background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; text-align: center; }
-        button { background: #0088cc; color: white; border: none; padding: 10px; border-radius: 5px; width: 100%; }
+        body { 
+            font-family: sans-serif; 
+            background: #f0f0f0; 
+            padding: 20px; 
+            margin: 0;
+        }
+        .profile {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .cards-container {
+            display: flex; 
+            gap: 10px; 
+        }
+        .card { 
+            background: white; 
+            border-radius: 10px; 
+            padding: 15px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+            flex: 1; 
+            text-align: center; 
+        }
+        /* Сделаем карточки немного похожими на аниме/мангу :) */
+        .card-common { border: 2px solid #a0a0a0; }
+        .card-rare { border: 2px solid #0088cc; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h3>Карточка 1</h3>
-        <p>Обычная</p>
+    <div class="profile">
+        <h2 id="greeting">Загрузка профиля...</h2>
+        <p>Баланс: <span id="coins">200</span> 🪙</p>
     </div>
-    <div class="card">
-        <h3>Карточка 2</h3>
-        <p>Редкая</p>
+
+    <div class="cards-container">
+        <div class="card card-common">
+            <h3>Манга Карточка 1</h3>
+            <p>Обычная</p>
+        </div>
+        <div class="card card-rare">
+            <h3>Манга Карточка 2</h3>
+            <p>Редкая</p>
+        </div>
     </div>
+
     <script>
-        // Инициализация Telegram Mini App
+        // Инициализируем приложение
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Развернуть на весь экран
+        tg.expand(); // Разворачиваем на весь экран
+
+        // Находим элемент, куда будем писать имя
+        const greetingElement = document.getElementById('greeting');
+
+        // Проверяем, передал ли Telegram данные (чтобы не было ошибки, если открыть просто в браузере)
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            // Достаем имя пользователя из "чемоданчика"
+            const userName = tg.initDataUnsafe.user.first_name;
+            greetingElement.innerText = `Привет, ${userName}!`;
+        } else {
+            greetingElement.innerText = "Привет, Гость!";
+        }
     </script>
 </body>
 </html>
