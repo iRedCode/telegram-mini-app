@@ -2,102 +2,162 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background: #1e1e2f; color: white; padding: 15px; margin: 0; text-align: center; }
-        .profile { background: #2a2a40; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
-        
-        /* Стили для вкладок */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { flex: 1; padding: 10px; background: #3742fa; color: white; border: none; border-radius: 8px; font-weight: bold; opacity: 0.5; transition: 0.2s; }
-        .tab-btn.active { opacity: 1; background: #ff4757; }
-        
-        /* Скрываем неактивные вкладки */
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        /* Базовые настройки */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #12121c; color: white; margin: 0; padding: 0; padding-bottom: 70px; }
+        * { box-sizing: border-box; }
 
-        .btn-pack { background: #ff4757; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;}
-        .btn-pack:active { transform: scale(0.98); }
-        .result-card { margin-top: 20px; background: #3742fa; padding: 20px; border-radius: 10px; display: none; }
+        /* Вкладки */
+        .tab-content { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Дизайн Карточки */
+        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
         
-        /* Стили для сетки инвентаря */
-        .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .inv-card { background: #2a2a40; padding: 10px; border-radius: 8px; border: 1px solid #555; }
-        .inv-card h1 { margin: 5px 0; font-size: 30px; }
-        .inv-card p { margin: 5px 0; font-size: 12px; }
+        .card-visual {
+            position: relative; width: 100%; aspect-ratio: 2/3; /* Пропорции карточки */
+            border-radius: 12px; background-size: cover; background-position: center;
+            overflow: hidden; border: 3px solid; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        
+        /* Плашка ранга (в левом верхнем углу) */
+        .rank-badge {
+            position: absolute; top: 0; left: 0; padding: 5px 12px; font-weight: 900; font-size: 18px;
+            background: rgba(0, 0, 0, 0.7); border-bottom-right-radius: 10px; z-index: 2;
+        }
+
+        /* Текст внизу карты */
+        .card-info {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9) 60%, black);
+            padding: 20px 10px 10px 10px; text-align: center; z-index: 2;
+        }
+        .card-name { font-weight: bold; font-size: 15px; margin: 0; text-shadow: 1px 1px 2px black; }
+        .card-anime { font-size: 11px; opacity: 0.8; margin: 3px 0 0 0; }
+
+        /* Цвета рамок в зависимости от ранга */
+        .rank-S { border-color: #ff4757; color: #ff4757; } /* Красный */
+        .rank-A { border-color: #ffa502; color: #ffa502; } /* Золотой */
+        .rank-P { border-color: #9b59b6; color: #9b59b6; } /* Фиолетовый */
+        .rank-D { border-color: #3742fa; color: #3742fa; } /* Синий */
+        .rank-E { border-color: #747d8c; color: #747d8c; } /* Серый */
+
+        /* Элементы UI */
+        .profile-card { background: #1e1e2d; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px; border: 1px solid #2a2a40; }
+        .btn-pack { background: linear-gradient(135deg, #ff4757, #ff6b81); color: white; border: none; padding: 18px; font-size: 18px; border-radius: 12px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4); }
+        .btn-pack:active { transform: scale(0.97); }
+
+        /* Нижнее меню (Bottom Navigation) */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: #1e1e2d; display: flex;
+            justify-content: space-around; padding: 12px 0; border-top: 1px solid #2a2a40; z-index: 100;
+        }
+        .nav-item { color: #747d8c; background: none; border: none; font-size: 12px; font-weight: bold; display: flex; flex-direction: column; align-items: center; gap: 5px; opacity: 0.7; transition: 0.2s; }
+        .nav-item.active { color: #ff4757; opacity: 1; }
+        .nav-icon { font-size: 20px; }
     </style>
 </head>
 <body>
-    <div class="profile">
-        <h2 id="greeting">Загрузка...</h2>
-        <p>Баланс: <span id="coins">...</span> 🪙</p>
+
+    <div id="tab-profile" class="tab-content active">
+        <h2 style="margin-top:0;">Мой профиль</h2>
+        <div class="profile-card">
+            <h1 style="font-size: 40px; margin: 10px 0;">👤</h1>
+            <h2 id="greeting">Загрузка...</h2>
+            <p style="color: #ffa502; font-size: 18px; font-weight: bold;">Баланс: <span id="coins">...</span> 🪙</p>
+        </div>
     </div>
 
-    <div class="tabs">
-        <button class="tab-btn active" id="btn-shop" onclick="switchTab('shop')">Магазин</button>
-        <button class="tab-btn" id="btn-inv" onclick="switchTab('inventory')">Моя коллекция</button>
-    </div>
-
-    <div id="tab-shop" class="tab-content active">
+    <div id="tab-shop" class="tab-content">
+        <h2>Магазин</h2>
         <button class="btn-pack" id="openPackBtn" onclick="openPack()">Открыть пак (50 🪙)</button>
-        <div class="result-card" id="cardResult">
-            <h3>Вам выпала карточка!</h3>
-            <h1 id="cardEmoji">✨</h1>
-            <h2 id="cardName">Название</h2>
-            <p id="cardRarity">Редкость</p>
+        <div id="newCardContainer" style="display: none; text-align: center;">
+            <h3 style="color: #ff4757;">✨ Новая карта! ✨</h3>
+            <div id="newCardRender" style="width: 70%; margin: 0 auto;"></div>
         </div>
     </div>
 
     <div id="tab-inventory" class="tab-content">
-        <h3>Ваши карты:</h3>
-        <div class="inventory-grid" id="inventoryList">
-            </div>
+        <h2>Моя коллекция</h2>
+        <div class="cards-grid" id="inventoryList"></div>
+    </div>
+
+    <div id="tab-allcards" class="tab-content">
+        <h2>Справочник карт</h2>
+        <p style="font-size: 12px; color: #747d8c;">Все карточки, которые существуют в игре:</p>
+        <div class="cards-grid" id="allCardsList"></div>
+    </div>
+
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="switchTab('profile', this)"><span class="nav-icon">👤</span>Профиль</button>
+        <button class="nav-item" onclick="switchTab('shop', this)"><span class="nav-icon">🛍️</span>Магазин</button>
+        <button class="nav-item" onclick="switchTab('inventory', this)"><span class="nav-icon">🎒</span>Коллекция</button>
+        <button class="nav-item" onclick="switchTab('allcards', this)"><span class="nav-icon">📖</span>Все карты</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.setHeaderColor('#1e1e2d'); // Красим шапку телеграма в цвет приложения
 
-        // ВАЖНО: Вставь свою ссылку на Render!
+        // !!! ВАЖНО: ВСТАВЬ СЮДА ССЫЛКУ НА СВОЙ RENDER !!!
         const SERVER_URL = "https://manga-cards-backend.onrender.com"; 
         
         const userId = tg.initDataUnsafe?.user?.id || '123';
         const userName = tg.initDataUnsafe?.user?.first_name || 'Гость';
 
         // Переключение вкладок
-        function switchTab(tabName) {
+        function switchTab(tabName, btnElement) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab-${tabName}`).classList.add('active');
-            document.getElementById(tabName === 'shop' ? 'btn-shop' : 'btn-inv').classList.add('active');
+            btnElement.classList.add('active');
         }
 
-        // Отрисовка инвентаря
-        function renderInventory(items) {
-            const list = document.getElementById('inventoryList');
-            list.innerHTML = ''; // Очищаем список
-            
+        // Генератор HTML для карточки (чтобы не писать один и тот же код 10 раз)
+        function createCardHTML(card) {
+            return `
+                <div class="card-visual rank-${card.rank}" style="background-image: url('${card.image}')">
+                    <div class="rank-badge rank-${card.rank}">${card.rank}</div>
+                    <div class="card-info">
+                        <p class="card-name">${card.name}</p>
+                        <p class="card-anime">${card.anime}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Отрисовка списков
+        function renderGrid(containerId, items, emptyMessage) {
+            const list = document.getElementById(containerId);
+            list.innerHTML = '';
             if (items.length === 0) {
-                list.innerHTML = '<p style="grid-column: span 2;">У вас пока нет карточек. Откройте первый пак!</p>';
+                list.innerHTML = `<p style="grid-column: span 2; text-align: center; color: #747d8c;">${emptyMessage}</p>`;
                 return;
             }
-
             items.forEach(card => {
-                list.innerHTML += `
-                    <div class="inv-card">
-                        <h1>${card.emoji}</h1>
-                        <p><strong>${card.name}</strong></p>
-                        <p>${card.rarity}</p>
-                    </div>
-                `;
+                list.innerHTML += createCardHTML(card);
             });
         }
 
-        // Логин: теперь получаем и инвентарь тоже
+        // Загрузка всех существующих карт (Справочник)
+        async function loadAllCards() {
+            try {
+                const response = await fetch(`${SERVER_URL}/api/cards`);
+                const allCards = await response.json();
+                renderGrid('allCardsList', allCards, 'Карты загружаются...');
+            } catch (e) {
+                console.error("Ошибка загрузки справочника");
+            }
+        }
+
+        // Логин: получаем профиль и инвентарь
         async function login() {
-            document.getElementById('greeting').innerText = `Привет, ${userName}!`;
+            document.getElementById('greeting').innerText = userName;
             try {
                 const response = await fetch(`${SERVER_URL}/api/login`, {
                     method: 'POST',
@@ -106,7 +166,7 @@
                 });
                 const data = await response.json();
                 document.getElementById('coins').innerText = data.coins;
-                renderInventory(data.inventory); // Рисуем карточки
+                renderGrid('inventoryList', data.inventory, 'У вас пока нет карточек. Откройте пак в магазине!');
             } catch (e) {
                 alert("Ошибка подключения к серверу!");
             }
@@ -116,6 +176,7 @@
         async function openPack() {
             const btn = document.getElementById('openPackBtn');
             btn.disabled = true; btn.innerText = "Открываем...";
+            document.getElementById('newCardContainer').style.display = 'none';
 
             try {
                 const response = await fetch(`${SERVER_URL}/api/open_pack`, {
@@ -130,13 +191,11 @@
                 } else {
                     document.getElementById('coins').innerText = data.coins;
                     
-                    document.getElementById('cardEmoji').innerText = data.newCard.emoji;
-                    document.getElementById('cardName').innerText = data.newCard.name;
-                    document.getElementById('cardRarity').innerText = data.newCard.rarity;
-                    document.getElementById('cardResult').style.display = 'block';
+                    // Рисуем выпавшую карту
+                    document.getElementById('newCardRender').innerHTML = createCardHTML(data.newCard);
+                    document.getElementById('newCardContainer').style.display = 'block';
 
-                    // Обновляем список карт в фоне, заново запрашивая данные
-                    login(); 
+                    login(); // Обновляем инвентарь
                 }
             } catch (e) {
                 alert("Ошибка при открытии пака!");
@@ -144,7 +203,9 @@
             btn.disabled = false; btn.innerText = "Открыть пак (50 🪙)";
         }
 
+        // Запускаем при старте
         login();
+        loadAllCards();
     </script>
 </body>
 </html>
